@@ -198,8 +198,6 @@ Human authors bear full engineering responsibility for the correctness of the fi
 ---
 
 ## Future Extension Roadmap
-- Integrate LLM interfaces to ingest real-time model outputs as runtime belief predicates
-- Introduce dynamic file system state predicates (e.g., preconditions such as "target file exists")
 - Extend formal rule set with temporal constraints and inter-action dependency invariants
 - Replace standalone Z3 batch solving with a continuous runtime monitoring engine for incremental stream verification
 
