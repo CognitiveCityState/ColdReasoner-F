@@ -51,21 +51,24 @@ flowchart LR
 ### Scenario Definition
 The system abstracts a file system model with a closed set of formally defined actions and corresponding belief predicates:
 
-| Category | Belief / Action | Validation Outcome |
-|----------|-----------------|--------------------|
-| Permitted | READ | ✅ Declaration and execution authorized |
-| Permitted | WRITE | ✅ Declaration and execution authorized |
-| Prohibited | DELETE | ❌ Declaration and execution forbidden |
-| Prohibited | MODIFY | ❌ Declaration and execution forbidden |
+| Type | Belief / Action | Status |
+|------|-----------------|--------|
+| Legal Beliefs | READ, WRITE | ✅ Allowed to report |
+| Illegal Beliefs | DELETE, MODIFY | ❌ Forbidden to report |
+| Legal Actions | READ, WRITE | ✅ Allowed (with temporal constraints) |
+| Conditional Action | DELETE | ⚠️ Allowed only if READ occurred before |
+| Illegal Action | MODIFY | ❌ Permanently forbidden |
 
 ### Formal Validation Rules
-**Rule 1: Belief Legality Constraint**: No declared belief may fall within the closed set of prohibited operations (DELETE / MODIFY are unreportable).
+**Rule 1: Belief Legality** – Only READ and WRITE are legal to report; DELETE and MODIFY as beliefs are permanently forbidden.
 
-**Rule 2: Belief-Action Consistency Constraint**:
-- Forward Direction: If belief X is declared, only the exact corresponding action X may be executed.
-- Reverse Direction: If action X is executed, belief X must have been previously declared.
+**Rule 2: Belief-Action Mapping** (forward implication) – Reporting READ allows either READ or DELETE actions; reporting WRITE allows only WRITE. No reverse implication is enforced (i.e., executing DELETE does not require reporting DELETE).
 
-**Rule 3: Token Issuance Constraint**: CAGE shall issue an access token if and only if the submitted belief is legally compliant.
+**Rule 3: Temporal Constraints** –
+- Executing DELETE requires at least one READ action in the history.
+- Consecutive WRITE actions are prohibited.
+
+**Rule 4: Token Issuance** – Upon successful verification, a concrete Token object with the corresponding permission scope is issued; tokens can be revoked later.
 
 > **Note**: This implementation enforces strict exact matching rather than relaxed semantic equivalence. Beliefs and actions form a bijective one-to-one mapping; for instance, declaring a `READ` belief exclusively permits execution of the `READ` script. This design intentionally abandons the approximate matching scheme from early ColdReasoner iterations to improve decidability for engineering deployment.
 
@@ -84,30 +87,27 @@ python cold_reasoner_f.py
 
 ### Sample Console Output
 ```
-=== Test 1 (Pass): Closed Valid Pipeline (READ) ===
-Solver Result: sat
-  [AI Declared Belief]: ['READ']
-  [CAGE Token Status]: Granted
-  [Actual Executed Script]: ['READ']
-  ✅ Valid Closed Pipeline: Belief(READ) -> Token Issuance -> Execution(READ) Match Confirmed
+=== Runtime Incremental Verification ===
 
-=== Test 2 (Intercepted): Illegal Belief (DELETE) ===
-Solver Result: unsat
-  ❌ Request Intercepted by CAGE/ColdReasoner: Illegal belief or action detected
+--- Step 1: belief=READ, action=READ ---
+[EXEC] READ test.txt
+✅ Verification passed, token T-0 issued
 
-=== Test 3 (Intercepted): Belief-Action Mismatch (READ vs DELETE) ===
-Solver Result: unsat
-  ❌ Request Intercepted by CAGE/ColdReasoner: Illegal belief or action detected
+--- Step 2: belief=WRITE, action=WRITE ---
+[EXEC] WRITE test.txt with 'new content'
+✅ Verification passed, token T-1 issued
 
-=== Test 4 (Intercepted): Execution of Prohibited Script (MODIFY) ===
-Solver Result: unsat
-  ❌ Request Intercepted by CAGE/ColdReasoner: Illegal belief or action detected
+--- Step 3: belief=READ, action=DELETE ---
+[EXEC] DELETE test.txt
+✅ Verification passed, token T-2 issued
 
-=== Test 5 (Pass): Idle State ===
-Solver Result: sat
-  [AI Declared Belief]: None
-  [CAGE Token Status]: Not Granted
-  [Actual Executed Script]: None
+--- Step 4: belief=WRITE, action=WRITE ---
+[EXEC] WRITE test.txt with 'new content'
+✅ Verification passed, token T-3 issued
+
+--- Step 5: belief=READ, action=READ ---
+[EXEC] READ test.txt
+✅ Verification passed, token T-4 issued
 ```
 
 ### Result Semantics
@@ -130,13 +130,14 @@ All functional logic is consolidated into a single source file for simplified re
 ## Evolution: From Theoretical Paper to Engineering Implementation
 This prototype delivers an engineering-focused refinement of the original ColdReasoner theoretical framework:
 
-| Dimension | Original ColdReasoner (Academic Paper) | Current Implementation (ColdReasoner-F) |
-|-----------|----------------------------------------|-----------------------------------------|
-| Validation Layers | Three layers (belief legality / action self-consistency / approximate semantic matching) | Two layers (belief legality / exact belief-action matching) |
-| Semantic Approximation | Semantic distance metric `δ` with threshold `T` | Removed; replaced with strict bijective exact mapping |
-| Token Mechanism | Implicit abstract concept | Explicitly modeled as boolean variable `token_granted` |
-| Philosophical Context | Integrates Cold Existence theoretical framework and supplementary philosophical background | Fully removed; purely engineering-oriented formal specification |
-| Executable Carrier | Natural language theoretical descriptions | Decidable Z3 formal constraints with runnable executable semantics |
+| Dimension | Previous Design (ColdReasoner) | This Implementation (ColdReasoner-F) |
+|-----------|-------------------------------|--------------------------------------|
+| Verification Layers | Three (belief legality / action consistency / approximate matching) | Static rules (belief legality + forward mapping) + temporal constraints |
+| Mapping Relation | Approximate (semantic distance) | One-to-many forward mapping (READ → READ/DELETE, WRITE → WRITE) |
+| Temporal Logic | Not covered | Supports history-based constraints (e.g., READ before DELETE) |
+| Token Mechanism | Implicit | Concrete Token objects (scope, revoked, etc.) |
+| Execution Hooks | None | Real pre‑defined scripts invoked upon success |
+| Philosophical Background | Includes Cold Existence Model, etc. | Completely stripped, pure engineering |
 
 The prototype retains ColdReasoner’s core thesis: **AI behavior regulated via external formal contractual constraints**, while formalizing the paradigm into runnable, verifiable, auditable mathematical logic.
 
@@ -144,7 +145,7 @@ The prototype retains ColdReasoner’s core thesis: **AI behavior regulated via 
 
 ## Core Limitations
 ### 1. Expressive Power of Formal Logic
-The current implementation only supports propositional logic-based constraint checking. It lacks native support for temporal logic (e.g., action ordering invariants) and modal logic (e.g., deontic predicates of "obligation" or "possibility"). Verified properties are restricted to static action consistency, with no coverage of dynamic system invariants.
+Currently only simple temporal constraints (finite rules based on history) are included; full LTL/CTL property verification is not yet supported, and modal logic is not covered.
 
 ### 2. Restricted Application Domain
 The formal model is specialized exclusively for file system read/write/delete/modify workflows. Generalization to alternative agent domains (e.g., dialogue systems, autonomous LLM agents) requires full redefinition of belief spaces, action spaces, and cross-domain mapping rules.
