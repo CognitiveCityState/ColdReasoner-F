@@ -70,8 +70,6 @@ The system abstracts a file system model with a closed set of formally defined a
 
 **Rule 4: Token Issuance** – Upon successful verification, a concrete Token object with the corresponding permission scope is issued; tokens can be revoked later.
 
-> **Note**: This implementation enforces strict exact matching rather than relaxed semantic equivalence. Beliefs and actions form a bijective one-to-one mapping; for instance, declaring a `READ` belief exclusively permits execution of the `READ` script. This design intentionally abandons the approximate matching scheme from early ColdReasoner iterations to improve decidability for engineering deployment.
-
 ---
 
 ## Quick Start
