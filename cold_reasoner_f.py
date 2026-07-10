@@ -148,6 +148,19 @@ class ColdReasonerF:
         for belief, allowed_actions in self.belief_allowed_actions.items():
             s.add(Implies(Bool(f'rep_{belief}'), Or([Bool(f'exe_{a}') for a in allowed_actions])))
 
+    # ---------- 字符串 ↔ 枚举 辅助方法 ----------
+    def belief_from_str(self, s: str) -> int:
+        """将信念字符串转换为枚举值（不区分大小写）"""
+        mapping = {'READ': self.B_READ, 'WRITE': self.B_WRITE,
+                   'DELETE': self.B_DELETE, 'MODIFY': self.B_MODIFY}
+        return mapping.get(s.upper(), None)
+
+    def action_from_str(self, s: str) -> int:
+        """将动作字符串转换为枚举值（不区分大小写）"""
+        mapping = {'READ': self.A_READ, 'WRITE': self.A_WRITE,
+                   'DELETE': self.A_DELETE, 'MODIFY': self.A_MODIFY}
+        return mapping.get(s.upper(), None)
+
     def issue_token(self, belief: int) -> Token:
         """根据信念生成一个令牌，其 scope 包含该信念允许的所有动作"""
         allowed = self.belief_allowed_actions.get(belief, [])
