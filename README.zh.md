@@ -182,6 +182,7 @@ python llm_integration_demo.py
 
 该集成演示充分验证了 ColdReasoner-F 内核在真实 LLM 交互场景下的可靠性，同时保持核心引擎的独立性与纯净性。
 
+---
 
 ## 人工智能使用声明
 
