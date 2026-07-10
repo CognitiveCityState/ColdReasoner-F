@@ -20,7 +20,7 @@
 [![Z3](https://img.shields.io/badge/Z3-4.16.0-green.svg)](https://github.com/Z3Prover/z3)
 
 </div>
-```
+
 ColdReasoner-F is a minimized, refined implementation of the ColdReasoner runtime verification core. Centered on a file management scenario, it strips away abstract philosophical reasoning and returns to engineering fundamentals: **a functional, verifiable AI behavior and access control system built atop the Z3 constraint solver.**
 
 The system operates via a three-stage closed-loop mechanism of *Belief – Token – Action*. The AI reports its intent (Belief) to the CAGE gateway; upon validating legality, CAGE issues an access Token; the AI may only execute target scripts when holding a matching Token. Any deviation across the pipeline — illegal declared beliefs, token abuse, or unauthorized actions — will be captured and rejected by mathematical constraints encoded within ColdReasoner.
@@ -116,15 +116,6 @@ python cold_reasoner_f.py
 
 ---
 
-## Project Structure
-```
-ColdReasoner-F/
-└── cold_reasoner_f.py    # Single-file implementation: Z3 constraint encoding + test suite
-```
-All functional logic is consolidated into a single source file for simplified readability, modification, and extension.
-
----
-
 ## Evolution: From Theoretical Paper to Engineering Implementation
 This prototype delivers an engineering-focused refinement of the original ColdReasoner theoretical framework:
 
@@ -149,7 +140,37 @@ Currently only simple temporal constraints (finite rules based on history) are i
 The formal model is specialized exclusively for file system read/write/delete/modify workflows. Generalization to alternative agent domains (e.g., dialogue systems, autonomous LLM agents) requires full redefinition of belief spaces, action spaces, and cross-domain mapping rules.
 
 ### 3. Deployment Constraints
-No native integration with large language model (LLM) APIs or OS-level privilege enforcement subsystems. This artifact serves solely as a conceptual verification prototype and is unsuitable for production-grade deployment.
+No OS-level privilege enforcement subsystems. This artifact serves solely as a conceptual verification prototype and is unsuitable for production-grade deployment.
+
+---
+
+## LLM Integration Test
+
+In addition to the pure core verification engine (`cold_reasoner_f.py`), this project provides an integration demo file `llm_integration_demo.py`. This file invokes the core engine and interfaces with the **qwen-plus** model on Alibaba Cloud Bailian platform to simulate an AI agent's decision-making under formal constraints.
+
+Before running, set the environment variable `DASHSCOPE_API_KEY`, then execute:
+
+```bash
+pip install dashscope
+python llm_integration_demo.py
+```
+
+The test suite includes four independent scenarios:
+1. **Belief-action mapping violation** (READ → MODIFY is intercepted)
+2. **Temporal constraint violation** (DELETE without prior READ is intercepted)
+3. **Temporal constraint violation** (consecutive WRITE is intercepted)
+4. **Unstructured input robustness** (natural language input is safely rejected)
+
+All tests currently pass. Sample output (abridged):
+
+```
+[Test 1] Expected: intercept READ→MODIFY      → ✅ Intercepted
+[Test 2] Expected: intercept DELETE w/o READ  → ✅ Intercepted
+[Test 3] Expected: intercept consecutive WRITE → ✅ Intercepted
+[Test 4] Expected: reject natural language    → ✅ Safely failed
+```
+
+This integration demo fully validates the reliability of the ColdReasoner-F core in real-world LLM interaction scenarios, while keeping the core engine independent and clean.
 
 ---
 
